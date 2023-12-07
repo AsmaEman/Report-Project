@@ -7,62 +7,48 @@ def generate_police_report(template_data):
     doc.add_heading('Police Report', level=1).alignment = 1
     
     # Add department details
-    doc.add_heading('Riverside County Sheriff Department', level=2)
+    doc.add_paragraph('-- This report is generated automatically --')
     
     # Add report details
+    doc.add_heading('General Information:', level=2)
     doc.add_paragraph(f"Report Number: {template_data['ReportNumber']}")
     doc.add_paragraph(f"Report Date: {template_data['ReportDate']}")
     doc.add_paragraph(f"Report Officer: {template_data['ReportOfficer']}")
     doc.add_paragraph(f"Assignment: {template_data['Assignment']}")
     
     # Add incident details
-    doc.add_heading('Details:', level=2)
-    doc.add_paragraph("Incident Details:")
+    doc.add_heading('Incident Details:', level=2)
     doc.add_paragraph(f"An incident that occurred on {template_data['IncidentDate']} at {template_data['IncidentLocation']}. The nature of the incident was {template_data['IncidentNature']}, and the initial observation indicated {template_data['InitialObservation']}.")
     
     # Add victim details
-    doc.add_paragraph("Victim Details:")
+    doc.add_heading("Victim Information:", level=2)
     doc.add_paragraph(f"The victim, {template_data['VictimName']}, residing at {template_data['VictimAddress']}, can be reached at {template_data['VictimContact']}. According to the victim's statement, {template_data['VictimStatment']}.")
     
     # Add witness details
-    doc.add_paragraph("Witness Details:")
-    doc.add_paragraph(f"A witness, {template_data['WitnessName']}, residing at {template_data['WitnessAddress']} and reachable at {template_data['WitnessConatct']}, who is a {template_data['WitnessRelation']} of the victim, provided the following statement: {template_data['WitnessStatement']}.")
+    doc.add_heading("Witness Information:", level=2)
+    doc.add_paragraph(f"A witness, {template_data['WitnessName']}, residing at {template_data['WitnessAddress']} and reachable at {template_data['WitnessConatct']}, who is a {template_data['WitnessRelation']}, provided the following statement: {template_data['WitnessStatement']}.")
     
     # Add suspect information
-    doc.add_paragraph("Suspect Information:")
-    doc.add_paragraph(f"The suspect, identified as {template_data['SuspectName']}, is described as {template_data['SuspectDescription']} and was last seen at {template_data['SuspectLocation']} and having a {template_data['VehicleInfo']}.")
+    doc.add_heading("Suspect Information:", level=2)
+    doc.add_paragraph(f"The suspect, identified as {template_data['SuspectName']}, is described as {template_data['SuspectDescription']} and was last seen at {template_data['SuspectLocation']}.")
     
     # Add evidence collected
-    doc.add_paragraph("Evidence Collected:")
-    doc.add_paragraph(f"Photographs: {template_data['Photographs']}")
-    doc.add_paragraph(f"Medical Reports: {template_data['MedicalReports']}")
+    doc.add_heading("Evidence Collected:", level=2)
     doc.add_paragraph(f"Physical Evidence: {template_data['PhysicalEvidence']}")
-    doc.add_paragraph(f"Surveillance Footage: {template_data['SurveillanceFootage']}")
-    doc.add_paragraph(f"Other Evidence: {template_data['OtherEvidence']}")
     
     # Add investigation summary
     doc.add_heading('Investigation Summary:', level=2)
-    doc.add_paragraph(f"The scene processing details are: {template_data['SceneProcessing']}")
-    doc.add_paragraph(f"Interviews were conducted with the individuals involved: {template_data['Interviews']}")
-    doc.add_paragraph(f"Background checks are done having details {template_data['BackgroundChecks']}")
-    doc.add_paragraph(f"Additional Investigate Actions are {template_data['AddInvestigateActions']}")
+    doc.add_paragraph(f"Scene Processing Details: {template_data['SceneProcessing']}")
+    doc.add_paragraph(f"Suspect's Background Check: {template_data['BackgroundChecks']}")
+    doc.add_paragraph(f"Additional Investigation: {template_data['AddInvestigateActions']}")
     
     # Add additional details
-    doc.add_paragraph(f"The additional Observations are {template_data['AddObservations']}")
-    doc.add_paragraph(f"Recommended Follow-up Actions are {template_data['RecFollowupActions']}")
-    
-    # Add case status
-    doc.add_heading('Case Status:', level=2)
-    doc.add_paragraph(f"{template_data['CaseStatus']}")
-    
-    # Add officer's narrative
-    doc.add_heading('Officer’s Narrative:', level=2)
-    doc.add_paragraph(f"{template_data['OfficerNarrative']}")
-    
-    # Add signatures and completion details
-    doc.add_paragraph(f"Officer's Signature: {template_data['OfficerSignature']}")
+    doc.add_heading('Final Remarks:', level=2)
+    doc.add_paragraph(f"Additional Observations: {template_data['AddObservations']}")
+    doc.add_paragraph(f"Reporting Officer's Narrative: {template_data['OfficerNarrative']}")
+    doc.add_paragraph(f"Recommended Penal Code: {template_data['PenalCode']}")
+    doc.add_paragraph(f"Case Status: {template_data['CaseStatus']}")
     doc.add_paragraph(f"Completion Date: {template_data['CompletionDate']}")
-    doc.add_paragraph(f"Supervisor's Signature: {template_data['SupervisorSignature']}")
     doc.add_paragraph(f"Review Date: {template_data['ReviewDate']}")
     
     # Save the document
