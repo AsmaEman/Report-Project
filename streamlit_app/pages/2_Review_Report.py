@@ -12,11 +12,12 @@ report_numbers = {}
 if 'report_numbers' in st.session_state:
     report_numbers = st.session_state.report_numbers
 
+st.image("logo.png" , width=200)
 # Display Title and Description
 st.title("Review Filed Reports")
 
 reports = st.selectbox(
-    "View available reports",
+    "**View available reports**",
     ["--"] + list(report_numbers.keys()))
 
 if reports != "--":
@@ -132,15 +133,22 @@ if reports != "--":
         # Generate the Word document buffer
         doc_buffer = generate_police_report(template_data)
 
+
         # Create a download button
         download_button = st.download_button(
-            label="Download Police Report",
+            label="**Download Police Report**",
             key="download_police_report",
             data=doc_buffer.getvalue(),
             file_name="police_report.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
 
+
         # Display the download button in your Streamlit app
         if download_button:
             st.success("Download complete!")
+
+
+
+
+
