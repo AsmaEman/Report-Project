@@ -4,6 +4,11 @@ import pandas as pd
 import time
 import pickle
 import openai
+from langchain.llms import OpenAI
+import openai
+from langchain import FewShotPromptTemplate
+from langchain.prompts import PromptTemplate
+from langchain.prompts import FewShotPromptTemplate
 
 
 st.set_page_config(
@@ -32,6 +37,26 @@ class Chatbot:
 
         message = {"content": response.response}
         return message
+    def generate_report_response(self, user_input):
+        # open a file, where you stored the pickled data
+        file = open('few_shot_prompt_template', 'rb')
+
+        # dump information to that file
+        data = pickle.load(file)
+
+        # close the file
+        file.close()
+   
+        report_prompt = data.format(query=f"""
+        Incident Report: {user_input} Generate a summary of an incident report involving the case. Include information about the date, location,
+        individuals involved, actions taken by law enforcement, and the current case status just remove extra symbols from query?
+        """)
+        
+        query_engine = self.index.as_query_engine()  # Use self.index instead of index
+        report_response= query_engine.query(report_prompt)  # Use prompt instead of user_input
+
+
+        return report_response
 
 report_numbers = {}
 if 'report_numbers' in st.session_state:
@@ -101,10 +126,10 @@ with st.form(key="report_form" , clear_on_submit = True):
     scene_processing = st.text_area(label="**Crime Scene**")
     background_checks = st.text_area(label="**Suspect's Background Check**")
     add_investigate_actions = st.text_area(label="**Other Actions**")
-
+    
     st.caption("8. Final Remarks")
     add_observations = st.text_area(label="**Additional Observations**")
-    officer_narrative = st.text_area(label="**Reporting Officer's Statement**")
+    # officer_narrative = st.text_area(label="**Reporting Officer's Statement**")
 
     case_status = st.text_input(label = "**Case Status**")
     completion_date = st.date_input(label = "**Report Completion Date**")
@@ -112,10 +137,13 @@ with st.form(key="report_form" , clear_on_submit = True):
 
     submit_button = st.form_submit_button(label="**Submit Report**")
 
+
+
     # If the submit button is pressed
     if submit_button:
 
             penal_code = 'N/A'
+            Officer_Statement = 'N/A'
             # Generate a response using a 'bot' object
             if incident_nature or inital_observation or victim_statement:
                 while penal_code == 'N/A':
@@ -151,13 +179,18 @@ with st.form(key="report_form" , clear_on_submit = True):
                         "BackgroundChecks": background_checks,
                         "AddInvestigateActions" : add_investigate_actions,
                         "AddObservations": add_observations,
-                        "OfficerNarrative": officer_narrative,
                         "PenalCode": penal_code,
+                        "OfficerStatement":Officer_Statement,
                         "CaseStatus" : case_status,
                         "CompletionDate": completion_date,
                         "ReviewDate": review_date
                     }
-
+            if report_data:
+                while Officer_Statement == 'N/A':
+                    user_input = report_data 
+                    response = bot.generate_report_response(user_input)
+                    Officer_Statement = response
+                report_data["OfficerStatement"] = Officer_Statement
             report_numbers[report_number] = report_data
             st.session_state.report_data = report_data
             st.session_state.report_numbers = report_numbers
@@ -176,6 +209,4 @@ with st.form(key="report_form" , clear_on_submit = True):
             #alert = st.warning("Report Details successfully submitted!") # Display the alert
             #time.sleep(3) # Wait for 3 seconds
             #alert.empty()
-
-
 
