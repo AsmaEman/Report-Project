@@ -2,3 +2,4 @@ streamlit
 st-gsheets-connection
 pandas
 python-docx
+langchain
