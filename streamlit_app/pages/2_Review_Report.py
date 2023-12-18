@@ -70,15 +70,15 @@ if reports != "--":
             # Add additional details
             doc.add_heading('Final Remarks:', level=2)
             doc.add_paragraph(f"Additional Observations: {template_data['AddObservations']}")
-            doc.add_paragraph(f"Reporting Officer's Narrative: {template_data['OfficerNarrative']}")
+            # doc.add_paragraph(f"Reporting Officer's Narrative: {template_data['OfficerNarrative']}")
             doc.add_paragraph(f"Recommended Penal Code: {template_data['PenalCode']}")
+            doc.add_paragraph(f"Reporting Officer's Statement: {template_data['OfficerStatement']}")
             doc.add_paragraph(f"Case Status: {template_data['CaseStatus']}")
             doc.add_paragraph(f"Completion Date: {template_data['CompletionDate']}")
             doc.add_paragraph(f"Review Date: {template_data['ReviewDate']}")
             
             # Save the document
             # doc.save('police_report.docx')
-            
                 # Save the document to an in-memory buffer
             buffer = io.BytesIO()
             doc.save(buffer)
@@ -133,7 +133,6 @@ if reports != "--":
         # Generate the Word document buffer
         doc_buffer = generate_police_report(template_data)
 
-
         # Create a download button
         download_button = st.download_button(
             label="**Download Police Report**",
@@ -143,12 +142,6 @@ if reports != "--":
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
 
-
         # Display the download button in your Streamlit app
         if download_button:
             st.success("Download complete!")
-
-
-
-
-
