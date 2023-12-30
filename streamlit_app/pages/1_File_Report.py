@@ -9,7 +9,10 @@ import openai
 from langchain import FewShotPromptTemplate
 from langchain.prompts import PromptTemplate
 from langchain.prompts import FewShotPromptTemplate
-
+from docx import Document
+import io
+from PIL import Image
+import PyPDF2
 
 st.set_page_config(
     page_title= "Report",
@@ -57,6 +60,21 @@ class Chatbot:
 
 
         return report_response
+    def generate_evidence_summary(self, evidence_input):
+        prompt = f"""
+        Evidence Summary: {evidence_input}
+
+               Examine the contents of the attached files and craft a concise summary, 
+               emphasizing essential details while excluding irrelevant information. 
+               Strive for precision and coherence in your analysis. If summarizing proves challenging or certain details are unclear,
+               please indicate 'N/A'.
+        """
+        query_engine = self.index.as_query_engine()
+        response = query_engine.query(prompt)
+        return response
+
+    
+ 
 
 report_numbers = {}
 if 'report_numbers' in st.session_state:
@@ -119,7 +137,14 @@ with st.form(key="report_form" , clear_on_submit = True):
     suspect_location = st.text_input(label="**Suspect's Current Location**")
 
     st.caption("6. Evidence Collected")
-    evidence = st.file_uploader(label="**Photographs / Reports / Footage**")
+    evidence_files = st.file_uploader(
+    label="**Photographs / Reports / Footage**",
+    type=["jpg", "jpeg", "png", "pdf", "docx"],
+    accept_multiple_files=True
+    )
+
+
+    
     physical_evidence = st.text_area(label="**Details of Evidence**")
 
     st.caption("7. Investigation Summary")
@@ -136,14 +161,40 @@ with st.form(key="report_form" , clear_on_submit = True):
     review_date = st.date_input(label = "**Review Date**")
 
     submit_button = st.form_submit_button(label="**Submit Report**")
-
-
-
     # If the submit button is pressed
     if submit_button:
+            evidence_summary = 'N/A'
+            if evidence_files:
+                for file_num, file in enumerate(evidence_files, start=1):
+                    try:
+                        if file.type.startswith("image"):
+                            image = Image.open(io.BytesIO(file.read()))
+                            summary = bot.generate_evidence_summary(image)
+                        elif file.type == "application/pdf":
+                            pdf_content = ""
+                            pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(file.read()))
+                            for page_num in range(pdf_reader.numPages):
+                                pdf_content += pdf_reader.getPage(page_num).extractText()
+                            summary = bot.generate_evidence_summary(pdf_content)
+                        elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                            doc = Document(io.BytesIO(file.read()))
+                            paragraphs = [paragraph.text for paragraph in doc.paragraphs]
+                            input_text = "\n".join(paragraphs)
+                            summary = bot.generate_evidence_summary(input_text)
+                        else:
+                            st.warning(f"Unsupported file type for File {file_num}. Please upload a supported file type.")
+                            continue
 
+                        evidence_summary = summary
+
+                    except Exception as e:
+                        st.error(f"Error processing File {file_num}: {str(e)}")
+            else:
+                # Handle the case when no evidence files are uploaded
+                evidence_summary = 'N/A'
             penal_code = 'N/A'
             Officer_Statement = 'N/A'
+            
             # Generate a response using a 'bot' object
             if incident_nature or inital_observation or victim_statement:
                 while penal_code == 'N/A':
@@ -181,32 +232,21 @@ with st.form(key="report_form" , clear_on_submit = True):
                         "AddObservations": add_observations,
                         "PenalCode": penal_code,
                         "OfficerStatement":Officer_Statement,
+                        "EvidenceSummary" : evidence_summary,
                         "CaseStatus" : case_status,
                         "CompletionDate": completion_date,
                         "ReviewDate": review_date
                     }
             if report_data:
                 while Officer_Statement == 'N/A':
-                    user_input = report_data 
-                    response = bot.generate_report_response(user_input)
+                    response = bot.generate_report_response(report_data)
                     Officer_Statement = response
                 report_data["OfficerStatement"] = Officer_Statement
             report_numbers[report_number] = report_data
             st.session_state.report_data = report_data
             st.session_state.report_numbers = report_numbers
 
-            # df_report_data = pd.DataFrame([report_data])
-
-            # Add the new data to the existing data
-            # updated_df = pd.concat([existing_data, df_report_data], ignore_index=True)
-
-            # Update Google Sheets with the new incident data
-            # conn.update(worksheet="ReportDetails", data=updated_df)
 
             st.success("File Reported Successfully!")
 
-            
-            #alert = st.warning("Report Details successfully submitted!") # Display the alert
-            #time.sleep(3) # Wait for 3 seconds
-            #alert.empty()
 
