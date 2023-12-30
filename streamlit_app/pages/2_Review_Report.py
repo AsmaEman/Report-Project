@@ -73,6 +73,7 @@ if reports != "--":
             # doc.add_paragraph(f"Reporting Officer's Narrative: {template_data['OfficerNarrative']}")
             doc.add_paragraph(f"Recommended Penal Code: {template_data['PenalCode']}")
             doc.add_paragraph(f"Reporting Officer's Statement: {template_data['OfficerStatement']}")
+            doc.add_paragraph(f"Evidence Summary: {template_data['EvidenceSummary']}")
             doc.add_paragraph(f"Case Status: {template_data['CaseStatus']}")
             doc.add_paragraph(f"Completion Date: {template_data['CompletionDate']}")
             doc.add_paragraph(f"Review Date: {template_data['ReviewDate']}")
