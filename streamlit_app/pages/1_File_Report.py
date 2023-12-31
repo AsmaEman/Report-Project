@@ -60,6 +60,24 @@ class Chatbot:
 
 
         return report_response
+    def evidence_image(self,image_path):
+        
+        result = openai.chat.completions.create(
+            model = "gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text",
+                        "text": "Analyze the visual content of the provided image file, creating a brief summary that highlights crucial details while excluding irrelevant information. Aim for accuracy and clarity in your analysis. If summarization poses challenges or specific details are unclear, kindly mention 'N/A' in your response."},
+                        {"type": "image_url",
+                        "image_url": f"data:image/jpeg;base64,{image_path}"},
+                    ]
+                },
+            ],
+            max_tokens=300,
+            )
+        return result.choices[0].message.content
     def generate_evidence_summary(self, evidence_input):
         prompt = f"""
         Evidence Summary: {evidence_input}
@@ -72,7 +90,7 @@ class Chatbot:
         query_engine = self.index.as_query_engine()
         response = query_engine.query(prompt)
         return response
-
+    
     
  
 
@@ -168,8 +186,8 @@ with st.form(key="report_form" , clear_on_submit = True):
                 for file_num, file in enumerate(evidence_files, start=1):
                     try:
                         if file.type.startswith("image"):
-                            image = Image.open(io.BytesIO(file.read()))
-                            summary = bot.generate_evidence_summary(image)
+                            encoded_image = base64.b64encode(file.read()).decode('utf-8')
+                            summary = bot.evidence_image(encoded_image)
                         elif file.type == "application/pdf":
                             pdf_content = ""
                             pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(file.read()))
