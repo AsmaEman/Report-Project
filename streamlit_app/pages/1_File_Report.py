@@ -9,11 +9,12 @@ import openai
 from langchain import FewShotPromptTemplate
 from langchain.prompts import PromptTemplate
 from langchain.prompts import FewShotPromptTemplate
+from concurrent.futures import ThreadPoolExecutor
 from docx import Document
 import io
 from PIL import Image
 import PyPDF2
-
+import base64
 st.set_page_config(
     page_title= "Report",
     page_icon = ":page_with_curl:"
@@ -40,6 +41,24 @@ class Chatbot:
 
         message = {"content": response.response}
         return message
+    def evidence_image(self,image_path):
+        
+        result = openai.chat.completions.create(
+            model = "gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text",
+                        "text": "Analyze the visual content of the provided image file, creating a brief summary that highlights crucial details while excluding irrelevant information. Aim for accuracy and clarity in your analysis. If summarization poses challenges or specific details are unclear, kindly mention 'N/A' in your response."},
+                        {"type": "image_url",
+                        "image_url": f"data:image/jpeg;base64,{image_path}"},
+                    ]
+                },
+            ],
+            max_tokens=300,
+            )
+        return result.choices[0].message.content
     def generate_report_response(self, user_input):
         # open a file, where you stored the pickled data
         file = open('few_shot_prompt_template', 'rb')
@@ -60,37 +79,17 @@ class Chatbot:
 
 
         return report_response
-    def evidence_image(self,image_path):
-        
-        result = openai.chat.completions.create(
-            model = "gpt-4-vision-preview",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text",
-                        "text": "Analyze the visual content of the provided image file, creating a brief summary that highlights crucial details while excluding irrelevant information. Aim for accuracy and clarity in your analysis. If summarization poses challenges or specific details are unclear, kindly mention 'N/A' in your response."},
-                        {"type": "image_url",
-                        "image_url": f"data:image/jpeg;base64,{image_path}"},
-                    ]
-                },
-            ],
-            max_tokens=300,
-            )
-        return result.choices[0].message.content
     def generate_evidence_summary(self, evidence_input):
         prompt = f"""
-        Evidence Summary: {evidence_input}
-
-               Examine the contents of the attached files and craft a concise summary, 
-               emphasizing essential details while excluding irrelevant information. 
-               Strive for precision and coherence in your analysis. If summarizing proves challenging or certain details are unclear,
-               please indicate 'N/A'.
+        Evidence Summary: The following text is an aggregation of information from various sources related to an incident, including witness statements, reports, and document summaries. The task is to analyze this information and provide a concise, coherent summary that emphasizes the key details and omits irrelevant information.
+        {evidence_input}.
+        Based on the above information, please provide a concise summary, focusing on essential details. If certain aspects of the summarization prove challenging or if specific details are unclear, please indicate 'N/A'.
         """
-        query_engine = self.index.as_query_engine()
-        response = query_engine.query(prompt)
+        query_engine = self.index.as_query_engine()  
+        response = query_engine.query(prompt)  
+
+       
         return response
-    
     
  
 
@@ -179,36 +178,50 @@ with st.form(key="report_form" , clear_on_submit = True):
     review_date = st.date_input(label = "**Review Date**")
 
     submit_button = st.form_submit_button(label="**Submit Report**")
+    def process_file(file):
+        try:
+            summary = "N/A"  # Default summary
+
+            if file.type.startswith("image"):
+                encoded_image = base64.b64encode(file.read()).decode('utf-8')
+                summary = bot.evidence_image(encoded_image)
+            elif file.type == "application/pdf":
+                pdf_content = ""
+                pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(file.read()))
+                for page_num in range(pdf_reader.numPages):
+                    pdf_content += pdf_reader.getPage(page_num).extractText()
+                response = bot.generate_evidence_summary(pdf_content)
+                summary = str(response)
+            elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                doc = Document(io.BytesIO(file.read()))
+                paragraphs = [paragraph.text for paragraph in doc.paragraphs]
+                input_text = "\n".join(paragraphs)
+                response = bot.generate_evidence_summary(input_text)
+                summary = str(response)
+            else:
+                summary = "Unsupported file type."
+
+        except Exception as e:
+            summary = f"Error processing file: {str(e)}"
+
+        return summary  # Ensure a string is returned
+
+
+    
     # If the submit button is pressed
     if submit_button:
-            evidence_summary = 'N/A'
+            evidence_summaries = []
             if evidence_files:
-                for file_num, file in enumerate(evidence_files, start=1):
-                    try:
-                        if file.type.startswith("image"):
-                            encoded_image = base64.b64encode(file.read()).decode('utf-8')
-                            summary = bot.evidence_image(encoded_image)
-                        elif file.type == "application/pdf":
-                            pdf_content = ""
-                            pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(file.read()))
-                            for page_num in range(pdf_reader.numPages):
-                                pdf_content += pdf_reader.getPage(page_num).extractText()
-                            summary = bot.generate_evidence_summary(pdf_content)
-                        elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                            doc = Document(io.BytesIO(file.read()))
-                            paragraphs = [paragraph.text for paragraph in doc.paragraphs]
-                            input_text = "\n".join(paragraphs)
-                            summary = bot.generate_evidence_summary(input_text)
-                        else:
-                            st.warning(f"Unsupported file type for File {file_num}. Please upload a supported file type.")
-                            continue
+                # Process each file concurrently
+                with ThreadPoolExecutor() as executor:
+                    futures = [executor.submit(process_file, file) for file in evidence_files]
+                    for future in futures:
+                        summary = future.result()
+                        evidence_summaries.append(summary)
 
-                        evidence_summary = summary
-
-                    except Exception as e:
-                        st.error(f"Error processing File {file_num}: {str(e)}")
+                # Combine summaries into a single string or structure as needed
+                evidence_summary = " ".join(evidence_summaries)
             else:
-                # Handle the case when no evidence files are uploaded
                 evidence_summary = 'N/A'
             penal_code = 'N/A'
             Officer_Statement = 'N/A'
